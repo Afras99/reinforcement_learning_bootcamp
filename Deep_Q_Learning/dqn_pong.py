@@ -35,11 +35,11 @@ EPSILON_FINAL = 0.01
 State = np.ndarray
 Action = int
 BatchTensors = tt.Tuple[
-    torch.ByteTensor,           # current state
-    torch.LongTensor,           # actions
-    torch.Tensor,               # rewards
-    torch.BoolTensor,           # done || trunc
-    torch.ByteTensor            # next state
+    torch.ByteTensor,
+    torch.LongTensor,
+    torch.Tensor,
+    torch.BoolTensor,
+    torch.ByteTensor
 ]
 
 @dataclass
@@ -142,11 +142,20 @@ def calc_loss(batch: tt.List[Experience], net: dqn_model.DQN, tgt_net: dqn_model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dev", default="cpu", help="Device name, default=cpu")
     parser.add_argument("--env", default=DEFAULT_ENV_NAME,
                         help="Name of the environment, default=" + DEFAULT_ENV_NAME)
     args = parser.parse_args()
-    device = torch.device(args.dev)
+
+    # Auto-select best available device
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print("Using MPS (Apple Silicon GPU)")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+        print("Using CUDA GPU")
+    else:
+        device = torch.device("cpu")
+        print("Using CPU")
 
     env = wrappers.make_env(args.env)
     net = dqn_model.DQN(env.observation_space.shape, env.action_space.n).to(device)
